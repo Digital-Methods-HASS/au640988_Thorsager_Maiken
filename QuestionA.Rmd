@@ -1,0 +1,28 @@
+---
+title: "w47"
+output: html_document
+date: "2022-11-28"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Question A
+
+First I run the dataset and save it in my environment. 
+```{r dataset, eval = TRUE}
+library(tidyverse)
+library(here)
+monarchs <- read_delim(here("monarchs_clean.csv"))
+```
+
+Next up is piping it and creating a ggplot containing the duration of reign for the different monarchs
+```{r plotting, eval = TRUE}
+monarchs %>% 
+  select(Monarch, Reign_Start_Year, Reign_duration) %>% 
+  ggplot(aes(x=reorder(Monarch,Reign_Start_Year), y = Reign_duration))+
+  geom_col()+
+  labs(title = "Reign duration", x = "Monarch", y = "Duration")+ 
+  coord_flip()
+```
