@@ -1,0 +1,112 @@
+---
+title: "W48_assignment"
+author: "Maiken Thorsager"
+date: "created 06/12/2022, updated date: `r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document:
+    toc: TRUE
+    toc_float: TRUE
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Getting started
+
+First I start by instaling the packages needed in order to create an interactive map
+```{r}
+install.packages("leaflet")
+install.packages("htmlwidgets")
+```
+
+I then activate the libraries
+```{r}
+library(leaflet)
+library(htmlwidgets)
+```
+
+## Creating a Danish map
+
+I start out by creating a basic basemap (called l_den) based on the coordinates for the Nobelpark. Here i have set the zoom level to 10. 
+```{r}
+l_den <- leaflet() %>%  
+  setView(10.2033485, 56.1724376, zoom = 10)
+```
+
+Next up, I prepare to select the desired backgrounds. Instead of choosing all the Esri backgrounds individually, I grab them all at once
+```{r}
+esri <- grep("^Esri", providers, value = TRUE)
+```
+
+I now select all 11 Esri backgrounds from the provider tiles at once, and add them to my leaflet called l_den
+```{r}
+for (provider in esri) {
+  l_den <- l_den %>% addProviderTiles(provider, group = provider)
+}
+```
+
+I then view the leaflet I just created
+```{r}
+l_den
+```
+After having created the basic basemap, it is time to create a layered map. To do that we need the components created above. I write them into a new object called DENmap. This new object contains a layers control in the top right corner, a minimap in the bottom right corner, and a measure object in the bottom left corner
+```{r}
+DENmap <- l_den %>%
+  addLayersControl(baseGroups = names(esri),
+                   options = layersControlOptions(collapsed = TRUE)) %>% 
+  addMiniMap(tiles = esri[[1]], toggleDisplay = TRUE,
+             position = "bottomright") %>%
+  addMeasure(
+    position = "bottomleft",
+    primaryLengthUnit = "meters",
+    primaryAreaUnit = "sqmeters",
+    activeColor = "#3D535D",
+    completedColor = "#7D4479") %>% 
+    htmlwidgets::onRender("
+                        function(el, x) {
+                        var myMap = this;
+                        myMap.on('baselayerchange',
+                        function (e) {
+                        myMap.minimap.changeLayer(L.tileLayer.provider(e.name));
+                        })
+                        }") %>%
+  addControl("", position = "topright")
+```
+
+After having created the object I run it to see it
+```{r}
+DENmap
+```
+
+Next up I save the widget (the map I just created) as an html
+```{r}
+saveWidget(DENmap, "DENmap.html", selfcontained = TRUE)
+```
+
+## Reading in a Google Sheet 
+
+First I run the packages needed for this part
+```{r}
+library(tidyverse)
+library(googlesheets4)
+library(leaflet)
+library(here)
+```
+
+Reading in the Google Sheet. When running the second part of the code you are asked to log into your Google account and copy a link. Paste that link into the console here in R, and then run the last part of the code. You should then see "places" in your environment and that is all the data from the Google Sheet. 
+```{r}
+gs4_deauth()
+
+places <- read_sheet("https://docs.google.com/spreadsheets/d/1PlxsPElZML8LZKyXbqdAYeQCDIvDps2McZx1cTVWSzI/edit#gid=124710918",
+                     col_types = "cccnncnc", range = "SA2022")
+glimpse(places)
+```
+
+Next I load in all the Google Sheet coordinates in my map that I created earlier
+```{r}
+DENmap %>% 
+  addMarkers(lng = places$Longitude, 
+             lat = places$Latitude,
+             popup = places$Description)
+```
+I have now created a map based on Nobelparken here in Aarhus and loaded coordinates from a Google Sheet into that map. 
